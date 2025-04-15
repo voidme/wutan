@@ -2,18 +2,20 @@
 class Context:
     def __init__(self, data = {}, parent=None):
         self.parent = parent if isinstance(parent, Context) else None
-        self.data = data
+        self.data = data if isinstance(data, dict) else {}
 
     def get(self, key, default=None, source=None):
-        value = self.data.get(key, default)
-        
-        if value is None and self.parent:
-            value = self.parent.get(key, default, self)
+        if not source:
+            source = self
 
-        if hasattr(value, '__call__'):
-            value = value(self)
+        value = self.data.get(key)
         
-        return value
+        if hasattr(value, '__call__'):
+            value = value(source)
+        elif value is None and self.parent:
+            value = self.parent.get(key, default, self)
+        
+        return value if value is not None else default
 
     def set(self, key, value):
         self.data[key] = value
@@ -48,5 +50,3 @@ def test():
     assert context1.get("test") == 2
 
     print("All tests passed!")
-
-test()
