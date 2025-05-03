@@ -1,38 +1,40 @@
+from typing import Any, Callable, Dict, Optional
 
 class Context:
-    def __init__(self, data = {}, parent=None):
-        self.parent = parent if isinstance(parent, Context) else None
-        self.data = data if isinstance(data, dict) else {}
+    def __init__(self, data: Optional[Dict[str, Any]] = None, parent: Optional['Context'] = None):
+        self.parent: Optional['Context'] = parent
+        self.data: Dict[str, Any] = data if data is not None else {}
 
-    def get(self, key, default=None, source=None):
+    def get(self, key: str, default: Any = None, source: Optional['Context'] = None) -> Any:
         if not source:
             source = self
 
         value = self.data.get(key)
-        
-        if hasattr(value, '__call__'):
+
+        if callable(value):
             value = value(source)
         elif value is None and self.parent:
             value = self.parent.get(key, default, self)
-        
+
         return value if value is not None else default
 
-    def set(self, key, value):
+    def set(self, key: str, value: Any) -> None:
         self.data[key] = value
 
-    def isExtended(self, context):
-        return self == context or self.parent != None and self.parent.isExtended(context)
+    def isExtended(self, context: 'Context') -> bool:
+        return self == context or (self.parent is not None and self.parent.isExtended(context))
 
-    def extend(self, context):
+    def extend(self, context: 'Context') -> None:
         if not self.isExtended(context):
-            exteneded = self.parent
+            extended = self.parent
             self.parent = context
-            context.parent = exteneded
+            context.parent = extended
 
-    def handles(self, key, method):
+    def handles(self, key: str, method: Callable[['Context'], Any]) -> None:
         self.data[key] = method
 
-def test():
+
+def test() -> None:
     context1 = Context()
     context2 = Context(parent=context1)
     context3 = Context(parent=context2)
